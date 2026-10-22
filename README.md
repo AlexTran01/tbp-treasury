@@ -82,29 +82,30 @@ This repo contains no Firebase connection. The settings live in `firebase-config
 4. **Register a web app:** Project settings → General → Your apps → Web (`</>`). Copy the `firebaseConfig` values it shows.
 5. **Add your config:**
    ```bash
-   cp firebase-config.example.js firebase-config.js
+   cp src/firebase-config.example.js src/firebase-config.js
    ```
-   Then paste your values into `firebase-config.js`. Git ignores this file, so it never gets committed.
+   Then paste your values into `src/firebase-config.js`. Git ignores this file, so it never gets committed.
 6. **Add yourself as an officer:** Firestore → Data → start a collection named `officers`, and add a document whose **ID is your Google email in lowercase**, with any field (for example `name`).
 7. **Publish the rules:** Firestore → Rules → paste the contents of [`firestore.rules`](firestore.rules) → Publish. Do this after step 6, or you'll lock yourself out.
 8. **Run it locally** (Google sign-in doesn't work from `file://`):
    ```bash
-   python3 -m http.server 8000
+   python3 -m http.server 8000 --directory src
    ```
    Open **http://localhost:8000**. Use `localhost`, not `127.0.0.1`, because only `localhost` is an authorized sign-in domain by default.
 
-To deploy, upload the folder **including your `firebase-config.js`** to a static host such as Vercel, then add the site's domain under Authentication → Settings → Authorized domains. [DEPLOY.md](DEPLOY.md) has the full walkthrough.
+To deploy, upload the **`src` folder**, including your `firebase-config.js`, to a static host such as Vercel (on Vercel, set the project's Root Directory to `src`), then add the site's domain under Authentication → Settings → Authorized domains. [DEPLOY.md](DEPLOY.md) has the full walkthrough.
 
 ## Project structure
 
 ```
-index.html                 Page markup and app logic
-styles.css                 All styling, light and dark themes
-firebase-config.example.js Template for your Firebase settings (copy to firebase-config.js)
-firestore.rules            Security rules (paste into the Firebase console)
-DEPLOY.md                  Setup and deployment guide
-tbp-logo*.png              Logo badge and background watermark
-docs/screenshots/          Images used in this README
+src/                           The website (everything that gets deployed)
+  index.html                   Page markup and app logic
+  styles.css                   All styling, light and dark themes
+  firebase-config.example.js   Template for your Firebase settings (copy to firebase-config.js)
+  assets/images/               Logo badge and background watermark
+firestore.rules                Security rules (paste into the Firebase console)
+DEPLOY.md                      Setup and deployment guide
+docs/screenshots/              Images used in this README
 ```
 
 ## Problems solved along the way

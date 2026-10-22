@@ -312,7 +312,7 @@ footer { text-align: center; font-size: 11.5px; color: var(--text-muted); margin
 /* ---------- background watermark ---------- */
 #bgWatermark {
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background-image: url("tbp-logo.png");
+  background-image: url("assets/images/tbp-logo.png");
   background-repeat: no-repeat;
   background-position: top center;
   background-size: 780px 1027px;

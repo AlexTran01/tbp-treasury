@@ -4,14 +4,14 @@ This is a standalone website, fully private: it opens to a login page, and only
 the approved chapter officers can sign in to see or edit the shared live data
 (Firebase Firestore). Nobody without an officer account can view anything.
 
-Files that matter:
-- `index.html` — the page markup and app script.
-- `styles.css` — all of the site's styling (linked from `index.html`).
-- `firebase-config.js` — your Firebase project's connection settings. **Not in git**
-  (gitignored); create it from `firebase-config.example.js`. It must be included
+Files that matter. Everything the website serves is in the `src/` folder:
+- `src/index.html` — the page markup and app script.
+- `src/styles.css` — all of the site's styling (linked from `index.html`).
+- `src/firebase-config.js` — your Firebase project's connection settings. **Not in git**
+  (gitignored); create it from `src/firebase-config.example.js`. It must be included
   when you deploy, or the site shows "Firebase isn't configured".
-- `tbp-logo.png`, `tbp-logo-mark.png` — the watermark and badge logos.
-- `firestore.rules` — the security rules you paste into Firebase (not deployed to Vercel).
+- `src/assets/images/tbp-logo.png`, `tbp-logo-mark.png` — the watermark and badge logos.
+- `firestore.rules` (top level) — the security rules you paste into Firebase (not deployed to Vercel).
 
 Config is already filled in — you just publish the rules and deploy. ~10 minutes.
 
@@ -19,7 +19,7 @@ Config is already filled in — you just publish the rules and deploy. ~10 minut
 
 ## Step 1 — Config (already done ✅)
 
-Your project's Firebase settings are in `firebase-config.js` (already filled in on
+Your project's Firebase settings are in `src/firebase-config.js` (already filled in on
 the treasurer's machine; not committed to GitHub). They're IDs, not secrets.
 
 Starting funds (e.g. Line Budget, Induction Money) are **not** set in `index.html` —
@@ -63,12 +63,12 @@ Easiest path (no command line):
 1. Go to **vercel.com** and sign up / log in (use "Continue with GitHub" or email).
 2. On your dashboard click **Add New… → Project**.
 3. Choose **Deploy a template / import** — or the simplest option:
-   drag the whole `tbp-treasury` folder onto the Vercel deploy area, **or** connect a
-   GitHub repo containing these files.
-   - *No-GitHub option:* run `npx vercel` in the folder from a terminal, or use
-     Vercel's drag-and-drop at **vercel.com/new**.
+   drag the **`src` folder** (not the whole project) onto the Vercel deploy area.
+   - *Command-line option:* run `npx vercel` from inside the `src` folder.
+   - Connecting the GitHub repo instead won't work as-is: `firebase-config.js`
+     isn't in GitHub, so the deployed site would show "Firebase isn't configured".
 4. When it asks for settings, no build step is needed — it's plain HTML.
-   Framework preset: **Other**. Output/root: the folder with `index.html`.
+   Framework preset: **Other**. Root directory: `src` (the folder with `index.html`).
 5. Click **Deploy**. In a few seconds you'll get a URL like
    `https://tbp-treasury.vercel.app`.
 6. (Optional) In the project's **Settings → Domains** you can rename it, e.g.
@@ -104,9 +104,9 @@ Google sign-in only works from approved domains.
 - **Add/remove an officer:** in the Firebase console, add or delete their document
   in the `officers` collection (Step 2a). Takes effect immediately — no rules
   re-publish and no site redeploy. Officers can't change this list from the app.
-- **Change colors or layout:** edit `styles.css`, then re-deploy the same way.
-- **Change categories:** edit `index.html`, then re-deploy on Vercel (drag the
-  folder again, or push to the connected GitHub repo — Vercel redeploys automatically).
+- **Change colors or layout:** edit `src/styles.css`, then re-deploy the same way.
+- **Change categories:** edit `src/index.html`, then re-deploy on Vercel (drag the
+  `src` folder again).
 - **Change starting funds, budgets, or add transactions:** just do it in the app
   (Budgets tab); no redeploy needed — it's all stored in Firestore.
 
