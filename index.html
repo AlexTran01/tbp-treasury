@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TBP Treasury</title>
+<link rel="stylesheet" href="styles.css" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div id="bgWatermark" aria-hidden="true"></div>
+
+<!-- ===================== LOGIN GATE (shown first) ===================== -->
+<div id="loginGate" hidden>
+  <div class="login-card">
+    <button class="bent login-logo" id="gateReload" type="button" title="Reload the page" aria-label="Reload the page"><img src="tbp-logo-mark.png" alt="Tau Beta Pi"></button>
+    <h1>NYO Treasury</h1>
+    <p>Treasury Dashboard is private to Tau Beta Pi NYO officers. Sign in with your approved chapter Google account to continue.</p>
+
+    <form class="login-form" id="gateEmailForm">
+      <div class="login-field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>
+        <input type="email" id="gateEmail" placeholder="email address" autocomplete="username" />
+      </div>
+      <div class="login-field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        <input type="password" id="gatePassword" placeholder="password" autocomplete="current-password" />
+      </div>
+      <button class="btn primary" type="submit">Login</button>
+    </form>
+
+    <div class="login-divider"><span>OR</span></div>
+
+    <button class="btn" id="gateSignInBtn" type="button">
+      <svg viewBox="0 0 18 18" width="17" height="17" aria-hidden="true">
+        <path fill="#4285F4" d="M17.64 9.2045c0-.6381-.0573-1.2518-.1636-1.8409H9v3.4814h4.8436c-.2086 1.125-.8427 2.0782-1.7959 2.7164v2.2582h2.9087c1.7018-1.5668 2.6836-3.874 2.6836-6.6151z"/>
+        <path fill="#34A853" d="M9 18c2.43 0 4.4673-.8059 5.9564-2.1805l-2.9087-2.2582c-.8059.54-1.8368.8591-3.0477.8591-2.3436 0-4.3282-1.5831-5.0359-3.7104H.9573v2.3318C2.4382 15.9832 5.4818 18 9 18z"/>
+        <path fill="#FBBC05" d="M3.9641 10.71c-.18-.54-.2823-1.1168-.2823-1.71s.1023-1.17.2823-1.71V4.9582H.9573C.3477 6.1732 0 7.5477 0 9s.3477 2.8268.9573 4.0418L3.9641 10.71z"/>
+        <path fill="#EA4335" d="M9 3.5795c1.3214 0 2.5077.4541 3.4405 1.346l2.5813-2.5814C13.4632.8918 11.4259 0 9 0 5.4818 0 2.4382 2.0168.9573 4.9582L3.9641 7.29C4.6718 5.1627 6.6564 3.5795 9 3.5795z"/>
+      </svg>
+      <span id="gateSignInBtnLabel">Sign in with Google</span>
+    </button>
+
+    <div class="login-error" id="gateError" hidden></div>
+    <button class="btn ghost small" id="gateReloadLink" type="button" style="margin-top:14px;">↻ Reload page</button>
+    <div class="login-foot">Access is limited to chapter officers. Stuck? Tap the logo or Reload.</div>
+  </div>
+</div>
+
+<!-- ===================== APP (built + inserted only after officer sign-in — see enterApp()) ===================== -->
+<template id="appTemplate">
+<div id="appRoot">
+
+<div class="masthead">
+  <div class="brand">
+    <div class="bent"><img src="tbp-logo-mark.png" alt="Tau Beta Pi"></div>
+    <div>
+      <h1 id="chapterName">Tau Beta Pi — Chapter Treasury</h1>
+      <div class="sub">Officer &amp; board finance dashboard</div>
+    </div>
+  </div>
+  <div class="whoami" id="authArea">
+    <span class="identity" id="authStatus">Connecting…</span>
+    <div id="authButtons"></div>
+  </div>
+</div>
+
+<div id="errorBanner" class="sync-banner" hidden></div>
+<div id="viewerBanner" class="sample-banner" hidden>
+  <span>👀 You're viewing in read-only mode. Sign in with an approved officer account to add or edit entries.</span>
+</div>
+
+<div class="tabs" role="tablist">
+  <button class="tab" data-tab="overview" role="tab" aria-selected="true">Overview</button>
+  <button class="tab" data-tab="transactions" role="tab" aria-selected="false">Transactions</button>
+  <button class="tab" data-tab="budgets" role="tab" aria-selected="false">Budgets</button>
+</div>
+
+<!-- ===================== OVERVIEW ===================== -->
+<div class="panel active" id="panel-overview">
+  <div class="filters">
+    <div class="field">
+      <label for="ovRange">Period</label>
+      <select id="ovRange">
+        <option value="all">All time</option>
+        <option value="30">Last 30 days</option>
+        <option value="90">Last 90 days</option>
+        <option value="month">This month</option>
+        <option value="semester">This semester (Aug–Dec / Jan–May)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi kpi-balance">
+      <div class="kpi-balance-text">
+        <div class="label">Treasury balance</div>
+        <div class="value mono" id="kpiBalance">$0.00</div>
+        <div class="delta" id="kpiBalanceSub">all-time income minus expenses</div>
+      </div>
+      <div class="kpi-balance-chart">
+        <div class="donut-chart" id="balanceDonut"></div>
+        <div class="donut-legend fund-legend" id="balanceDonutLegend"></div>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="label">Income (period)</div>
+      <div class="value mono" id="kpiIncome">$0.00</div>
+      <div class="delta" id="kpiIncomeSub">&nbsp;</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Expenses (period)</div>
+      <div class="value mono" id="kpiExpense">$0.00</div>
+      <div class="delta" id="kpiExpenseSub">&nbsp;</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Budget used (period)</div>
+      <div class="value mono" id="kpiBudget">—</div>
+      <div class="delta" id="kpiBudgetSub">&nbsp;</div>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-head"><div><h2>Spending by category</h2><div class="card-sub">Period total, highest first</div></div></div>
+      <div class="hbars" id="catChart"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div><h2>Spending by event</h2><div class="card-sub">Top events in the period</div></div></div>
+      <div class="hbars" id="eventChart"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div><h2>Monthly spending</h2><div class="card-sub">Expenses by month, last 6 months</div></div></div>
+    <div class="mbars" id="monthChart"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div><h2>Budget vs. actual</h2><div class="card-sub">By category, period to date</div></div></div>
+    <div class="bva-list" id="bvaList"></div>
+  </div>
+</div>
+
+<!-- ===================== TRANSACTIONS ===================== -->
+<div class="panel" id="panel-transactions">
+  <div class="card-head" style="margin-bottom:14px;">
+    <div><h2 style="font-size:18px;">Transaction log</h2><div class="card-sub" id="txCount">0 entries</div></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn" id="importBtn">Import CSV</button>
+      <button class="btn primary" id="addTxBtn">+ Add transaction</button>
+    </div>
+  </div>
+
+  <div class="filters">
+    <div class="field">
+      <label for="fType">Type</label>
+      <select id="fType"><option value="all">All</option><option value="expense">Expenses</option><option value="income">Income</option></select>
+    </div>
+    <div class="field">
+      <label for="fCategory">Category</label>
+      <select id="fCategory"><option value="all">All categories</option></select>
+    </div>
+    <div class="field">
+      <label for="fEvent">Event</label>
+      <select id="fEvent"><option value="all">All events</option></select>
+    </div>
+    <div class="field" style="flex:1;min-width:160px;">
+      <label for="fSearch">Search</label>
+      <input id="fSearch" placeholder="Search description…" />
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Date</th><th>Description</th><th>Category</th><th>Event</th><th>Fund</th><th>Type</th><th style="text-align:right;">Amount</th><th>Added by</th><th></th></tr>
+        </thead>
+        <tbody id="txBody"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="txEmpty" hidden>No transactions match these filters yet.</div>
+  </div>
+</div>
+
+<!-- ===================== BUDGETS ===================== -->
+<div class="panel" id="panel-budgets">
+  <div class="card">
+    <div class="card-head"><div><h2>Starting balance breakdown</h2><div class="card-sub">Live — updates as starting funds change</div></div></div>
+    <div class="donut-wrap">
+      <div class="donut-chart" id="startFundsDonut"></div>
+      <div class="donut-legend" id="startFundsDonutLegend"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div><h2>Treasury starting balance</h2><div class="card-sub">Funds carried in before any logged transactions. Each pot is tracked separately; the treasury balance starts from their total.</div></div>
+      <button class="btn small" id="addFundBtn">+ Add fund</button>
+    </div>
+    <div class="budget-table" id="startFundsTable"></div>
+    <div style="margin-top:12px;font-size:13px;color:var(--text-secondary);">Total carried in: <span class="num" id="startFundsTotal" style="font-weight:600;color:var(--text);">$0.00</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><div><h2>Category budgets</h2><div class="card-sub">Set a semester budget per category — leave 0 for none.</div></div></div>
+    <div class="budget-table" id="catBudgetTable"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div><h2>Event budgets</h2><div class="card-sub">Optional per-event caps.</div></div>
+      <button class="btn small" id="addEventBudgetBtn">+ Add event budget</button>
+    </div>
+    <div class="budget-table" id="eventBudgetTable"></div>
+    <div class="legend-empty" id="eventBudgetEmpty" hidden>No event budgets set yet.</div>
+  </div>
+
+  <button class="btn primary" id="saveBudgetsBtn">Save budgets</button>
+  <span id="budgetSaveMsg" style="margin-left:10px;font-size:12.5px;color:var(--good-text);"></span>
+</div>
+
+<footer>Tau Beta Pi NYO Treasury · Created by NYO Treasurer for NYO officers. Signed-in officers can edit</footer>
+
+<div id="modalRoot"></div>
+
+</div><!-- /#appRoot -->
+</template>
+
+<!-- Firebase SDK (compat build — matches the app's data layer) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+<!-- Firebase project settings. Not in git — copy firebase-config.example.js
+     to firebase-config.js and fill in your own project (see README). -->
+<script src="firebase-config.js"></script>
+
+<script>
+/* =================================================================
+   CONFIG
+   ================================================================= */
+
+// (1) Firebase project config lives in firebase-config.js (gitignored), which
+//     sets window.firebaseConfig. Without it the login page explains how to
+//     set it up instead of failing silently.
+var firebaseConfig = window.firebaseConfig;
+
+// (2) Who can edit is defined ONLY in firestore.rules (server-side, never sent
+//     to the browser), so no officer emails live in this public file. The app
+//     learns whether the signed-in person is an officer by asking the database.
+
+// (3) Starting funds are NOT configured here — real dollar amounts don't
+//     belong in a static file anyone can view via "View Source". They live
+//     only in Firestore (the budgets/main document) and are entered/edited
+//     live from the Budgets tab. A brand-new site starts with $0 until an
+//     officer adds funds there.
+
+/* =================================================================
+   App (no need to edit below this line)
+   ================================================================= */
+(function () {
+  "use strict";
+
+  // No firebase-config.js (a fresh clone), or the template values were never
+  // replaced: show setup instructions on the login card and stop here.
+  if (!firebaseConfig || !firebaseConfig.apiKey || /^YOUR_/.test(firebaseConfig.apiKey)) {
+    var gate = document.getElementById("loginGate");
+    gate.hidden = false;
+    gate.querySelector(".login-card").innerHTML =
+      "<h1>Firebase isn't configured</h1>" +
+      "<p>Copy <code>firebase-config.example.js</code> to <code>firebase-config.js</code> " +
+      "and fill in your own Firebase project's web config. See the README's " +
+      "\"Set up your own copy\" section.</p>";
+    return;
+  }
+
+  firebase.initializeApp(firebaseConfig);
+  var db = firebase.firestore();
+  var auth = firebase.auth();
+
+  // The only categories a transaction can be filed under. Ids are stored in
+  // Firestore, so don't rename an id once transactions use it. Colors cycle
+  // through the 8-color series palette (rows are always labeled).
+  var SERIES = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)", "var(--s6)", "var(--s7)", "var(--s8)"];
+  var CATEGORIES = [
+    ["account-fees", "Account Fees"],
+    ["apparel", "Apparel"],
+    ["car-rental", "Car Rental"],
+    ["copier", "Copier"],
+    ["due-to-fsa", "Due To FSA"],
+    ["due-to-special-event", "Due to Special Event"],
+    ["dues-and-fees", "Dues and Fees"],
+    ["entertainment", "Entertainment"],
+    ["equipment", "Equipment"],
+    ["flights", "Flights"],
+    ["food-and-beverages", "Food and Beverages"],
+    ["gifts-awards-prizes", "Gifts/Awards/Prizes"],
+    ["hotel-lodging", "Hotel/Lodging"],
+    ["insurance", "Insurance"],
+    ["insurance-disability", "Insurance-Disability"],
+    ["postage", "Postage"],
+    ["printing", "Printing"],
+    ["professional-fee", "Professional Fee"],
+    ["storage", "Storage"],
+    ["supplies", "Supplies"],
+    ["telephone", "Telephone"],
+    ["transportation", "Transportation"]
+  ].map(function (p, i) { return { id: p[0], label: p[1], color: SERIES[i % SERIES.length] }; });
+  var catById = {};
+  CATEGORIES.forEach(function (c) { catById[c.id] = c; });
+
+  // Data saved before the category list changed still carries the old ids.
+  // Map the obvious ones forward at read time (nothing in the database is
+  // rewritten); anything else is shown under a read-only "Uncategorized"
+  // bucket so its amounts still count, until someone re-files it by editing.
+  var LEGACY_CATEGORY_MAP = {
+    food: "food-and-beverages", printing: "printing", merch: "apparel",
+    dues: "dues-and-fees", transport: "transportation"
+  };
+  var UNCATEGORIZED = { id: "uncategorized", label: "Uncategorized (old category)", color: "var(--text-muted)" };
+  function normCat(id) {
+    if (catById[id]) return id;
+    if (LEGACY_CATEGORY_MAP[id]) return LEGACY_CATEGORY_MAP[id];
+    return UNCATEGORIZED.id;
+  }
+  // Category budgets keyed by current ids, folding in budgets saved under old ids.
+  function effectiveCategoryBudgets(b) {
+    var src = (b && b.categoryBudgets) || {};
+    var out = {};
+    CATEGORIES.forEach(function (c) { out[c.id] = Number(src[c.id]) || 0; });
+    Object.keys(src).forEach(function (k) {
+      var to = LEGACY_CATEGORY_MAP[k];
+      if (to && !catById[k] && !out[to]) out[to] = Number(src[k]) || 0;
+    });
+    return out;
+  }
+
+  var EVENT_SLOTS = ["var(--s1)","var(--s2)","var(--s3)","var(--s4)","var(--s5)","var(--s6)","var(--s7)","var(--s8)"];
+
+  function fmtMoney(n) {
+    var v = Number(n) || 0;
+    var neg = v < 0;
+    v = Math.abs(v);
+    var s = "$" + v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return neg ? "-" + s : s;
+  }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function todayISO() { return new Date().toISOString().slice(0, 10); }
+
+  // ---------------------------------------------------------------
+  // Auth / permissions
+  // ---------------------------------------------------------------
+  var currentUser = null;
+  var isOfficer = false;
+  function canEdit() { return isOfficer; }
+
+  var provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+
+  function renderAuthArea() {
+    var status = document.getElementById("authStatus");
+    var buttons = document.getElementById("authButtons");
+    buttons.innerHTML = "";
+    if (currentUser) {
+      status.innerHTML = '<span class="identity">' + esc(currentUser.displayName || currentUser.email) + "</span>" +
+        '<br><span class="role ' + (isOfficer ? "editor" : "viewer") + '">' + (isOfficer ? "Officer · can edit" : "View only") + "</span>";
+      var out = document.createElement("button");
+      out.className = "btn small"; out.textContent = "Sign out";
+      out.addEventListener("click", function () { auth.signOut(); });
+      buttons.appendChild(out);
+    } else {
+      status.textContent = "Not signed in";
+      var inb = document.createElement("button");
+      inb.className = "btn small primary"; inb.textContent = "Sign in to edit";
+      inb.addEventListener("click", function () {
+        auth.signInWithPopup(provider).catch(function (e) { showError("Sign-in failed: " + e.message); });
+      });
+      buttons.appendChild(inb);
+    }
+  }
+
+  function applyEditPermissions() {
+    var editable = canEdit();
+    document.getElementById("viewerBanner").hidden = editable || !currentUser ? (editable ? true : (currentUser ? false : false)) : false;
+    // Show viewer banner whenever the person cannot edit.
+    document.getElementById("viewerBanner").hidden = editable;
+    ["addTxBtn", "importBtn", "addEventBudgetBtn", "saveBudgetsBtn"].forEach(function (id) {
+      var el = document.getElementById(id); if (el) el.disabled = !editable;
+    });
+    document.querySelectorAll(".cat-budget-input, .event-budget-input, .fund-amount-input, .fund-label-input").forEach(function (i) { i.disabled = !editable; });
+    document.getElementById("addFundBtn").disabled = !editable;
+    renderTransactions();
+    renderEventBudgetTable();
+    renderStartFundsTable();
+  }
+
+  // ---------------------------------------------------------------
+  // #appRoot doesn't exist in the page until an approved officer is
+  // confirmed (see enterApp) — it's cloned in from <template id="appTemplate">.
+  // Anything that wires up or paints elements inside it can't run at parse
+  // time like it used to; queue it here and it runs once, right after the
+  // clone lands in the DOM.
+  // ---------------------------------------------------------------
+  // NOT cleared after running — #appRoot gets removed on sign-out and
+  // re-cloned fresh on every sign-in (see enterApp), so this needs to
+  // re-attach everything to the new copy each time, not just once.
+  var appReadyQueue = [];
+  function onAppReady(fn) { appReadyQueue.push(fn); }
+  function runAppReadyQueue() { appReadyQueue.forEach(function (fn) { fn(); }); }
+
+  // ---------------------------------------------------------------
+  // Login gate — the whole dashboard is behind officer sign-in.
+  // ---------------------------------------------------------------
+  function setGateMessage(errorMsg) {
+    var err = document.getElementById("gateError");
+    var btn = document.getElementById("gateSignInBtn");
+    var label = document.getElementById("gateSignInBtnLabel");
+    if (errorMsg) {
+      err.textContent = errorMsg; err.hidden = false;
+      label.textContent = "Try signing in again";
+    } else {
+      err.hidden = true;
+      label.textContent = "Sign in with Google";
+    }
+    btn.disabled = false;
+  }
+
+  // Reveal the login page (from initial load, or transitioning back from the app).
+  // #appRoot is removed from the DOM entirely (not just hidden) — there's
+  // nothing left to reveal by tampering with an attribute in devtools.
+  function showGate(errorMsg) {
+    var gate = document.getElementById("loginGate");
+    var app = document.getElementById("appRoot");
+    function reveal() {
+      if (app) app.remove();
+      gate.hidden = false;
+      gate.classList.remove("fade-out");
+      void gate.offsetWidth; // force reflow so the animation replays
+      gate.classList.add("fade-in");
+      setGateMessage(errorMsg);
+      window.scrollTo(0, 0);
+    }
+    if (app) {
+      // coming from the dashboard (e.g. sign out) — fade it out first
+      app.classList.add("fade-out");
+      setTimeout(reveal, 260);
+    } else {
+      reveal();
+    }
+  }
+
+  function enterApp() {
+    isOfficer = true;
+    var gate = document.getElementById("loginGate");
+    var app = document.getElementById("appRoot");
+    var firstBuild = !app;
+    if (firstBuild) {
+      // Build the dashboard from its template now that an approved officer
+      // is confirmed — it doesn't exist in the DOM before this point.
+      var tpl = document.getElementById("appTemplate");
+      app = tpl.content.firstElementChild.cloneNode(true);
+      gate.insertAdjacentElement("afterend", app);
+      runAppReadyQueue();
+    }
+    // start loading data right away
+    startSubscriptions();
+    maybeSeedStartingBalance();
+    renderAuthArea();
+    applyEditPermissions();
+    // animate the swap: fade the login card out, then reveal the dashboard
+    gate.classList.add("fade-out");
+    setTimeout(function () {
+      gate.hidden = true;
+      gate.classList.remove("fade-out");
+      app.classList.remove("fade-in");
+      void app.offsetWidth; // force reflow so the animation replays
+      app.classList.add("fade-in");
+      window.scrollTo(0, 0);
+    }, 260);
+  }
+
+  // The email/password fields aren't backed by a real auth method yet —
+  // this app only supports Google sign-in. Point people at the working button.
+  document.getElementById("gateEmailForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var err = document.getElementById("gateError");
+    err.textContent = "Email sign-in isn't set up yet — please continue with Google below.";
+    err.hidden = false;
+    document.getElementById("gateSignInBtn").focus();
+  });
+
+  document.getElementById("gateSignInBtn").addEventListener("click", function () {
+    this.disabled = true;
+    document.getElementById("gateError").hidden = true;
+    auth.signInWithPopup(provider).catch(function (e) {
+      var code = e && e.code ? e.code : "";
+      var msg;
+      if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request" || code === "auth/user-cancelled") {
+        msg = "Sign-in was cancelled before it finished. You can try again.";
+      } else if (code === "auth/popup-blocked") {
+        msg = "Your browser blocked the sign-in popup. Allow popups for this site, then try again.";
+      } else if (code === "auth/network-request-failed") {
+        msg = "Network problem during sign-in. Check your connection and try again.";
+      } else {
+        msg = "Sign-in didn't complete (" + (e && e.message ? e.message : "unknown error") + "). Please try again.";
+      }
+      // never leave the button stuck — always re-enable so they can retry
+      setGateMessage(msg);
+    });
+  });
+
+  // Logo and link on the login page double as a manual reload / escape hatch.
+  function reloadPage() { location.reload(); }
+  document.getElementById("gateReload").addEventListener("click", reloadPage);
+  document.getElementById("gateReloadLink").addEventListener("click", reloadPage);
+
+  auth.onAuthStateChanged(function (user) {
+    currentUser = user;
+    isOfficer = false;
+    if (!user) { stopSubscriptions(); showGate(null); return; }
+    // Confirm the signed-in account is an approved officer by reading an
+    // officer-only doc. The rules (server-side) are the real gate; this just
+    // decides whether to reveal the dashboard.
+    db.collection("meta").doc("officer-probe").get().then(
+      function () { enterApp(); },
+      function () {
+        showGate("The account " + (user.email || "") + " isn't an approved chapter officer. Ask the treasurer to add you, or sign in with a different account.");
+      }
+    );
+  });
+
+  function showError(msg) {
+    var el = document.getElementById("errorBanner");
+    el.textContent = msg; el.hidden = false;
+  }
+
+  // ---------------------------------------------------------------
+  // Firestore backend
+  // ---------------------------------------------------------------
+  var txCol = db.collection("transactions");
+  var budgetDoc = db.doc("budgets/main");
+
+  // Used only to seed a brand-new budgets/main doc the very first time (see
+  // maybeSeedStartingBalance) — deliberately no real dollar amounts here.
+  // Real starting funds live only in Firestore, entered via the Budgets tab.
+  function defaultBudgets() {
+    var cb = {};
+    CATEGORIES.forEach(function (c) { cb[c.id] = 0; });
+    return {
+      startingFunds: [],
+      categoryBudgets: cb,
+      eventBudgets: {}
+    };
+  }
+
+  // Total carried-in balance from the named starting funds (with back-compat
+  // for an older single startingBalance value).
+  function startingTotal(b) {
+    if (!b) return 0;
+    if (Array.isArray(b.startingFunds)) {
+      return b.startingFunds.reduce(function (s, f) { return s + (Number(f.amount) || 0); }, 0);
+    }
+    return Number(b.startingBalance) || 0;
+  }
+
+  // ---------------------------------------------------------------
+  // Funds — each starting fund is a pot of money, and every transaction
+  // records which pot it came from or went into (t.fund = the fund's id).
+  // Ids are permanent so renaming a fund keeps its transactions attached.
+  // Funds saved before ids existed get a deterministic id from their label
+  // (so every officer computes the same one); persistFundIds() then writes
+  // those ids back once, after which renames are safe.
+  // ---------------------------------------------------------------
+  function slugify(s) { return String(s || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "fund"; }
+  function newFundId() { return "f_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function fundsOf(b) {
+    if (!b) return [];
+    var raw = Array.isArray(b.startingFunds) ? b.startingFunds
+      : [{ label: "Starting balance", amount: Number(b.startingBalance) || 0 }];
+    var used = {};
+    return raw.map(function (f, i) {
+      var id = f.id;
+      if (!id) { id = "f_" + slugify(f.label); if (used[id]) id += "-" + i; }
+      used[id] = true;
+      return { id: id, label: f.label || "Fund", amount: Number(f.amount) || 0 };
+    });
+  }
+  function persistFundIds(b) {
+    if (!canEdit() || !b || !Array.isArray(b.startingFunds)) return;
+    if (b.startingFunds.every(function (f) { return f.id; })) return;
+    budgetDoc.update({ startingFunds: fundsOf(b) }).catch(function () {});
+  }
+
+  // Money left in each fund: its starting amount, plus income filed to it,
+  // minus expenses charged to it. Transactions with no fund (or a fund that
+  // was removed) are totalled under `unassigned` so the overall balance
+  // still adds up.
+  var UNASSIGNED_FUND = { id: "", label: "Unassigned", color: "var(--text-muted)" };
+  function fundBalances(funds, txs) {
+    var byId = {};
+    funds.forEach(function (f) { byId[f.id] = f.amount; });
+    var unassigned = 0, unassignedCount = 0;
+    txs.forEach(function (t) {
+      var signed = (t.type === "income" ? 1 : -1) * (Number(t.amount) || 0);
+      if (t.fund && t.fund in byId) byId[t.fund] += signed;
+      else { unassigned += signed; unassignedCount++; }
+    });
+    return { byId: byId, unassigned: unassigned, unassignedCount: unassignedCount };
+  }
+
+  // Overspending is blocked: returns an error message if replacing the
+  // transaction list `before` with `after` (or the funds) would push any fund
+  // below $0 — or further below, if it was already negative — else null.
+  function overspendError(fundsBefore, before, fundsAfter, after) {
+    var was = fundBalances(fundsBefore, before).byId;
+    var now = fundBalances(fundsAfter, after).byId;
+    var bad = fundsAfter.filter(function (f) {
+      var prev = f.id in was ? was[f.id] : 0;
+      return now[f.id] < -0.005 && now[f.id] < prev - 0.005;
+    });
+    if (!bad.length) return null;
+    return "Not enough money: this would leave " + bad.map(function (f) {
+      return f.label + " at " + fmtMoney(now[f.id]);
+    }).join(", ") + ". Nothing was saved.";
+  }
+  function fundLabel(id) {
+    var f = fundsOf(appState.budgets).filter(function (x) { return x.id === id; })[0];
+    return f ? f.label : null;
+  }
+
+  var seededOnce = false;
+  function maybeSeedStartingBalance() {
+    if (seededOnce) return;
+    seededOnce = true;
+    budgetDoc.get().then(function (snap) {
+      if (!snap.exists) { budgetDoc.set(defaultBudgets()); }
+    }).catch(function () {});
+  }
+
+  var backend = {
+    addTransaction: function (t) { return txCol.add(t); },
+    updateTransaction: function (id, patch) { return txCol.doc(id).update(patch); },
+    deleteTransaction: function (id) { return txCol.doc(id).delete(); },
+    setBudgets: function (b) { return budgetDoc.set(b); },
+  };
+
+  // ---------------------------------------------------------------
+  // App state
+  // ---------------------------------------------------------------
+  var appState = { transactions: [], budgets: null, events: [], activeTab: "overview" };
+
+  // ---------------------------------------------------------------
+  // Events — stored in their own Firestore collection (events/{id}, one doc
+  // per event name) so the transaction form can offer them as a list.
+  // Instead of tracking each add/edit/delete path, reconcileEvents() keeps the
+  // collection in step with the transactions: an event used by at least one
+  // transaction has a doc, one used by none has its doc deleted.
+  // ---------------------------------------------------------------
+  var evCol = db.collection("events");
+  var txLoaded = false, evLoaded = false;
+  function eventKey(name) { return String(name || "").trim().toLowerCase(); }
+  function eventDocId(name) { return "e_" + encodeURIComponent(eventKey(name)); }
+  // Dropdown source: stored events, plus any event still on a transaction
+  // (covers transactions that predate the events collection).
+  function eventNames() {
+    var seen = {}, out = [];
+    (appState.events || []).forEach(function (e) {
+      var k = eventKey(e.name);
+      if (k && !seen[k]) { seen[k] = true; out.push(String(e.name).trim()); }
+    });
+    (appState.transactions || []).forEach(function (t) {
+      var k = eventKey(t.event);
+      if (k && !seen[k]) { seen[k] = true; out.push(String(t.event).trim()); }
+    });
+    return out.sort(function (a, b) { return a.localeCompare(b); });
+  }
+  function reconcileEvents() {
+    // Only act on complete, server-confirmed data from both listeners —
+    // otherwise an empty or partial transaction list would delete real events.
+    if (!txLoaded || !evLoaded || !canEdit()) return;
+    var inUse = {};
+    appState.transactions.forEach(function (t) {
+      var k = eventKey(t.event);
+      if (k && !inUse[k]) inUse[k] = String(t.event).trim();
+    });
+    var stored = {};
+    appState.events.forEach(function (e) {
+      var k = eventKey(e.name);
+      stored[k] = true;
+      if (!inUse[k]) evCol.doc(e.id).delete().catch(function () {});
+    });
+    Object.keys(inUse).forEach(function (k) {
+      if (!stored[k]) {
+        evCol.doc(eventDocId(inUse[k])).set({ name: inUse[k], createdAt: new Date().toISOString() }).catch(function () {});
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------
+  // Tabs
+  // ---------------------------------------------------------------
+  onAppReady(function () {
+    document.querySelectorAll(".tab").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        document.querySelectorAll(".tab").forEach(function (b) { b.setAttribute("aria-selected", "false"); });
+        btn.setAttribute("aria-selected", "true");
+        document.querySelectorAll(".panel").forEach(function (p) { p.classList.remove("active"); });
+        document.getElementById("panel-" + btn.dataset.tab).classList.add("active");
+        appState.activeTab = btn.dataset.tab;
+      });
+    });
+  });
+
+  // populate category filter
+  onAppReady(function () {
+    var fCategory = document.getElementById("fCategory");
+    CATEGORIES.forEach(function (c) {
+      var o = document.createElement("option"); o.value = c.id; o.textContent = c.label; fCategory.appendChild(o);
+    });
+  });
+
+  function renderStartFundsTable() {
+    var wrap = document.getElementById("startFundsTable");
+    if (!wrap) return;
+    wrap.innerHTML = "";
+    var b = appState.budgets || defaultBudgets();
+    var funds = fundsOf(b);
+    funds.forEach(function (f, idx) {
+      var row = document.createElement("div");
+      row.className = "budget-item";
+      row.dataset.fundId = f.id;
+      row.innerHTML =
+        '<input type="text" class="fund-label-input" data-idx="' + idx + '" value="' + esc(f.label) + '" placeholder="Fund name" ' + (canEdit() ? "" : "disabled") + ' />' +
+        '<input type="number" step="0.01" class="fund-amount-input" data-idx="' + idx + '" value="' + (Number(f.amount) || 0) + '" ' + (canEdit() ? "" : "disabled") + ' />' +
+        (canEdit() ? '<button class="btn ghost small remove-fund" data-idx="' + idx + '" title="Remove">✕</button>' : "<span></span>");
+      wrap.appendChild(row);
+    });
+    var total = funds.reduce(function (s, f) { return s + (Number(f.amount) || 0); }, 0);
+    document.getElementById("startFundsTotal").textContent = fmtMoney(total);
+    wrap.querySelectorAll(".remove-fund").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var gone = funds[Number(btn.dataset.idx)];
+        var inUse = appState.transactions.filter(function (t) { return t.fund === gone.id; }).length;
+        if (inUse && !confirm('"' + gone.label + '" is used by ' + inUse + " transaction" + (inUse === 1 ? "" : "s") +
+            ". Remove it anyway? Those transactions will show as Unassigned until you pick a new fund for them.")) return;
+        appState.budgets = appState.budgets || defaultBudgets();
+        appState.budgets.startingFunds = funds.filter(function (_, i) { return i !== Number(btn.dataset.idx); });
+        renderStartFundsTable();
+      });
+    });
+    // keep total live as amounts are typed
+    wrap.querySelectorAll(".fund-amount-input").forEach(function (inp) {
+      inp.addEventListener("input", function () {
+        var t = 0;
+        wrap.querySelectorAll(".fund-amount-input").forEach(function (x) { t += parseFloat(x.value) || 0; });
+        document.getElementById("startFundsTotal").textContent = fmtMoney(t);
+      });
+    });
+  }
+
+  onAppReady(function () {
+    document.getElementById("addFundBtn").addEventListener("click", function () {
+      if (!canEdit()) return;
+      appState.budgets = appState.budgets || defaultBudgets();
+      appState.budgets.startingFunds = fundsOf(appState.budgets);
+      appState.budgets.startingFunds.push({ id: newFundId(), label: "New fund", amount: 0 });
+      renderStartFundsTable();
+    });
+  });
+
+  function renderCategoryBudgetTable() {
+    var wrap = document.getElementById("catBudgetTable");
+    wrap.innerHTML = "";
+    var b = appState.budgets || defaultBudgets();
+    var eff = effectiveCategoryBudgets(b);
+    CATEGORIES.forEach(function (c) {
+      var row = document.createElement("div");
+      row.className = "budget-item";
+      row.innerHTML =
+        '<div class="budget-item-label"><span class="dot" style="background:' + c.color + '"></span>' + esc(c.label) + "</div>" +
+        '<input type="number" step="0.01" min="0" class="cat-budget-input" data-cat="' + c.id + '" value="' + eff[c.id] + '" />' +
+        '<span></span>';
+      wrap.appendChild(row);
+    });
+    wrap.querySelectorAll(".cat-budget-input").forEach(function (i) { i.disabled = !canEdit(); });
+  }
+
+  function renderEventBudgetTable() {
+    var wrap = document.getElementById("eventBudgetTable");
+    wrap.innerHTML = "";
+    var b = appState.budgets || defaultBudgets();
+    var events = Object.keys(b.eventBudgets || {});
+    document.getElementById("eventBudgetEmpty").hidden = events.length > 0;
+    events.forEach(function (ev) {
+      var row = document.createElement("div");
+      row.className = "budget-item";
+      row.innerHTML =
+        '<div class="budget-item-label">' + esc(ev) + "</div>" +
+        '<input type="number" step="0.01" min="0" class="event-budget-input" data-event="' + esc(ev) + '" value="' + b.eventBudgets[ev] + '" ' + (canEdit() ? "" : "disabled") + ' />' +
+        (canEdit() ? '<button class="btn ghost small remove-event-budget" data-event="' + esc(ev) + '" title="Remove">✕</button>' : "<span></span>");
+      wrap.appendChild(row);
+    });
+    wrap.querySelectorAll(".remove-event-budget").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        delete appState.budgets.eventBudgets[btn.dataset.event];
+        renderEventBudgetTable();
+      });
+    });
+  }
+
+  onAppReady(function () {
+    document.getElementById("addEventBudgetBtn").addEventListener("click", function () {
+      if (!canEdit()) return;
+      var name = prompt("Event name:");
+      if (!name) return;
+      appState.budgets = appState.budgets || defaultBudgets();
+      appState.budgets.eventBudgets = appState.budgets.eventBudgets || {};
+      if (!(name in appState.budgets.eventBudgets)) appState.budgets.eventBudgets[name] = 0;
+      renderEventBudgetTable();
+    });
+  });
+
+  onAppReady(function () {
+  document.getElementById("saveBudgetsBtn").addEventListener("click", function () {
+    if (!canEdit()) return;
+    var b = appState.budgets ? Object.assign({}, appState.budgets) : defaultBudgets();
+    var funds = [];
+    document.querySelectorAll("#startFundsTable .budget-item").forEach(function (row) {
+      var labelEl = row.querySelector(".fund-label-input");
+      var amtEl = row.querySelector(".fund-amount-input");
+      if (!labelEl) return;
+      var label = labelEl.value.trim();
+      if (!label) return;
+      funds.push({ id: row.dataset.fundId || newFundId(), label: label, amount: parseFloat(amtEl.value) || 0 });
+    });
+    var overErr = overspendError(fundsOf(appState.budgets), appState.transactions, funds, appState.transactions);
+    if (overErr) { alert(overErr.replace("this would", "these starting amounts would")); return; }
+    b.startingFunds = funds;
+    delete b.startingBalance;
+    b.categoryBudgets = {};
+    document.querySelectorAll(".cat-budget-input").forEach(function (inp) { b.categoryBudgets[inp.dataset.cat] = parseFloat(inp.value) || 0; });
+    b.eventBudgets = b.eventBudgets || {};
+    document.querySelectorAll(".event-budget-input").forEach(function (inp) { b.eventBudgets[inp.dataset.event] = parseFloat(inp.value) || 0; });
+    backend.setBudgets(b).then(function () {
+      var msg = document.getElementById("budgetSaveMsg");
+      msg.textContent = "Saved.";
+      setTimeout(function () { msg.textContent = ""; }, 2000);
+    }).catch(function (e) { showError("Could not save budgets: " + e.message); });
+    });
+  });
+
+  // ---------------------------------------------------------------
+  // Filters
+  // ---------------------------------------------------------------
+  onAppReady(function () {
+    document.getElementById("ovRange").addEventListener("change", renderOverview);
+    ["fType", "fCategory", "fEvent", "fSearch"].forEach(function (id) {
+      document.getElementById(id).addEventListener("input", renderTransactions);
+    });
+  });
+
+  function periodRange() {
+    var val = document.getElementById("ovRange").value;
+    var now = new Date();
+    var start = null;
+    if (val === "30") { start = new Date(now); start.setDate(start.getDate() - 30); }
+    else if (val === "90") { start = new Date(now); start.setDate(start.getDate() - 90); }
+    else if (val === "month") { start = new Date(now.getFullYear(), now.getMonth(), 1); }
+    else if (val === "semester") {
+      var m = now.getMonth();
+      start = m >= 7 ? new Date(now.getFullYear(), 7, 1) : new Date(now.getFullYear(), 0, 1);
+    }
+    return start ? start.toISOString().slice(0, 10) : null;
+  }
+
+  function inPeriod(t) { var start = periodRange(); return !start || t.date >= start; }
+
+  // ---------------------------------------------------------------
+  // Overview rendering
+  // ---------------------------------------------------------------
+  function renderOverview() {
+    var all = appState.transactions;
+    var period = all.filter(inPeriod);
+    var budgets = appState.budgets || defaultBudgets();
+
+    var allIncome = all.filter(function (t) { return t.type === "income"; }).reduce(function (s, t) { return s + Number(t.amount || 0); }, 0);
+    var allExpense = all.filter(function (t) { return t.type === "expense"; }).reduce(function (s, t) { return s + Number(t.amount || 0); }, 0);
+    var balance = startingTotal(budgets) + allIncome - allExpense;
+
+    var pIncome = period.filter(function (t) { return t.type === "income"; }).reduce(function (s, t) { return s + Number(t.amount || 0); }, 0);
+    var pExpense = period.filter(function (t) { return t.type === "expense"; }).reduce(function (s, t) { return s + Number(t.amount || 0); }, 0);
+
+    document.getElementById("kpiBalance").textContent = fmtMoney(balance);
+    document.getElementById("kpiBalanceSub").textContent = "Started with " + fmtMoney(startingTotal(budgets)) + " · + income − expenses";
+    renderBalanceDonut();
+    document.getElementById("kpiIncome").textContent = fmtMoney(pIncome);
+    document.getElementById("kpiExpense").textContent = fmtMoney(pExpense);
+
+    var effBudgets = effectiveCategoryBudgets(budgets);
+    var totalBudget = CATEGORIES.reduce(function (s, c) { return s + effBudgets[c.id]; }, 0);
+    var kpiBudgetEl = document.getElementById("kpiBudget");
+    var kpiBudgetSub = document.getElementById("kpiBudgetSub");
+    if (totalBudget > 0) {
+      var pct = (pExpense / totalBudget) * 100;
+      kpiBudgetEl.textContent = pct.toFixed(0) + "%";
+      kpiBudgetSub.textContent = fmtMoney(pExpense) + " of " + fmtMoney(totalBudget) + " budgeted";
+      kpiBudgetEl.parentElement.querySelector(".delta").className = "delta " + (pct >= 100 ? "critical" : pct >= 85 ? "" : "good");
+    } else {
+      kpiBudgetEl.textContent = "—";
+      kpiBudgetSub.textContent = "No budgets set yet";
+    }
+
+    var catTotals = {};
+    period.filter(function (t) { return t.type === "expense"; }).forEach(function (t) {
+      var k = normCat(t.category);
+      catTotals[k] = (catTotals[k] || 0) + Number(t.amount || 0);
+    });
+    var catRows = CATEGORIES.concat([UNCATEGORIZED]).map(function (c) { return { label: c.label, color: c.color, value: catTotals[c.id] || 0 }; })
+      .filter(function (r) { return r.value > 0; })
+      .sort(function (a, b) { return b.value - a.value; });
+    renderHBars("catChart", catRows);
+
+    var evTotals = {};
+    period.filter(function (t) { return t.type === "expense" && t.event; }).forEach(function (t) {
+      evTotals[t.event] = (evTotals[t.event] || 0) + Number(t.amount || 0);
+    });
+    var evNames = Object.keys(evTotals).sort();
+    var evRows = evNames.map(function (name, i) { return { label: name, color: EVENT_SLOTS[i % EVENT_SLOTS.length], value: evTotals[name] }; })
+      .sort(function (a, b) { return b.value - a.value; })
+      .slice(0, 8);
+    renderHBars("eventChart", evRows, "No event spending logged for this period yet.");
+
+    var months = [];
+    var now = new Date();
+    for (var i = 5; i >= 0; i--) {
+      var dt = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({ key: dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0"), label: dt.toLocaleDateString(undefined, { month: "short" }) });
+    }
+    var monthTotals = {};
+    all.filter(function (t) { return t.type === "expense"; }).forEach(function (t) {
+      var key = (t.date || "").slice(0, 7);
+      monthTotals[key] = (monthTotals[key] || 0) + Number(t.amount || 0);
+    });
+    renderMonthBars(months.map(function (m) { return { label: m.label, value: monthTotals[m.key] || 0 }; }));
+
+    var bvaRows = CATEGORIES.concat([UNCATEGORIZED]).map(function (c) {
+      var budget = effBudgets[c.id] || 0;
+      var actual = catTotals[c.id] || 0;
+      return { cat: c, budget: budget, actual: actual };
+    }).filter(function (r) { return r.budget > 0 || r.actual > 0; });
+    renderBva(bvaRows);
+  }
+
+  function renderHBars(containerId, rows, emptyMsg) {
+    var el = document.getElementById(containerId);
+    el.innerHTML = "";
+    if (!rows.length) {
+      el.innerHTML = '<div class="legend-empty">' + esc(emptyMsg || "No spending in this period yet.") + "</div>";
+      return;
+    }
+    var max = Math.max.apply(null, rows.map(function (r) { return r.value; })) || 1;
+    rows.forEach(function (r) {
+      var row = document.createElement("div");
+      row.className = "hbar-row";
+      var pct = Math.max((r.value / max) * 100, 2);
+      row.innerHTML =
+        '<div class="hbar-label" title="' + esc(r.label) + '">' + esc(r.label) + "</div>" +
+        '<div class="hbar-track"><div class="hbar-fill" style="width:' + pct + "%;background:" + r.color + ';"></div></div>' +
+        '<div class="hbar-value num">' + fmtMoney(r.value) + "</div>";
+      el.appendChild(row);
+    });
+  }
+
+  function renderMonthBars(rows) {
+    var el = document.getElementById("monthChart");
+    el.innerHTML = "";
+    var max = Math.max.apply(null, rows.map(function (r) { return r.value; })) || 1;
+    rows.forEach(function (r) {
+      var col = document.createElement("div");
+      col.className = "mbar-col";
+      var h = Math.max((r.value / max) * 100, r.value > 0 ? 4 : 1);
+      col.innerHTML =
+        '<div class="mbar-amt num">' + (r.value > 0 ? fmtMoney(r.value) : "") + "</div>" +
+        '<div class="mbar" style="height:' + h + '%"></div>' +
+        '<div class="mbar-name">' + esc(r.label) + "</div>";
+      el.appendChild(col);
+    });
+  }
+
+  function renderBva(rows) {
+    var el = document.getElementById("bvaList");
+    el.innerHTML = "";
+    if (!rows.length) { el.innerHTML = '<div class="legend-empty">Set category budgets in the Budgets tab to see this comparison.</div>'; return; }
+    rows.sort(function (a, b) { return (b.actual / (b.budget || b.actual || 1)) - (a.actual / (a.budget || a.actual || 1)); });
+    rows.forEach(function (r) {
+      var pct = r.budget > 0 ? (r.actual / r.budget) * 100 : 0;
+      var status = "neutral", statusLabel = "No budget set";
+      if (r.budget > 0) {
+        if (pct >= 100) { status = "critical"; statusLabel = "Over budget"; }
+        else if (pct >= 85) { status = "warning"; statusLabel = "Near limit"; }
+        else { status = "good"; statusLabel = "On track"; }
+      }
+      var row = document.createElement("div");
+      row.className = "bva-row";
+      row.innerHTML =
+        '<div class="bva-top">' +
+          '<div class="bva-cat"><span class="dot" style="background:' + r.cat.color + '"></span>' + esc(r.cat.label) + "</div>" +
+          '<span class="pill ' + status + '">' + statusLabel + "</span>" +
+        "</div>" +
+        '<div class="bva-track"><div class="bva-fill" style="width:' + Math.min(pct, 100) + "%;background:" + r.cat.color + ';"></div>' +
+          (r.budget > 0 ? '<div class="bva-target" style="left:100%"></div>' : "") +
+        "</div>" +
+        '<div class="bva-nums" style="margin-top:4px;">' + fmtMoney(r.actual) + (r.budget > 0 ? " of " + fmtMoney(r.budget) : " (no budget set)") + "</div>";
+      el.appendChild(row);
+    });
+  }
+
+  // Donuts — the Budgets tab shows what each fund started with; the Overview
+  // Treasury balance tile shows what is left in each fund right now. A fund
+  // keeps the same color in both (its position in the funds list).
+  var DONUT_PALETTE = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--s5)", "var(--s6)", "var(--s7)", "var(--s8)"];
+  function fundColor(i) { return DONUT_PALETTE[i % DONUT_PALETTE.length]; }
+
+  // Draws a flat 2D ring into chartEl. segs: [{ amt (> 0), color, tip }],
+  // largest first. Hovering a segment shows its `tip` in a cursor-following
+  // tooltip.
+  function drawDonut(chartEl, segs, centerValue, centerLabel) {
+    var total = segs.reduce(function (s, x) { return s + x.amt; }, 0);
+    var r = 84, cx = 120, cy = 120, sw = 32, circumference = 2 * Math.PI * r;
+    var offset = 0;
+    var ringSvg = segs.length
+      ? segs.map(function (s) {
+          var len = (s.amt / total) * circumference;
+          var circle = '<circle class="donut-seg" data-label="' + esc(s.tip) + '" cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + s.color + '" stroke-width="' + sw + '" ' +
+            'stroke-dasharray="' + len.toFixed(2) + " " + (circumference - len).toFixed(2) + '" ' +
+            'stroke-dashoffset="' + (-offset).toFixed(2) + '" transform="rotate(-90 ' + cx + " " + cy + ')" />';
+          offset += len;
+          return circle;
+        }).join("")
+      : '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="var(--grid)" stroke-width="' + sw + '" />';
+
+    chartEl.innerHTML =
+      '<svg viewBox="0 0 240 240" width="240" height="240">' +
+        ringSvg +
+        '<text x="' + cx + '" y="' + (cy - 8) + '" text-anchor="middle" class="donut-center-value">' + esc(centerValue) + "</text>" +
+        '<text x="' + cx + '" y="' + (cy + 13) + '" text-anchor="middle" class="donut-center-label">' + esc(centerLabel) + "</text>" +
+      "</svg>";
+
+    // A lazily-created singleton living directly on <body>, never inside
+    // #appRoot: #appRoot carries a leftover identity transform from its
+    // .fade-in animation (animation-fill-mode: both), and per spec ANY
+    // non-"none" transform on an ancestor — even a no-op matrix — makes
+    // that ancestor the containing block for position:fixed descendants
+    // instead of the real viewport. Nested inside #appRoot, the tooltip
+    // would render offset by #appRoot's own position, which grows with
+    // viewport width (the page is centered with max-width:1180px) — that
+    // was the "works on small screens, drifts right on big screens" bug.
+    // Living on <body> also means it survives #appRoot being torn down and
+    // re-cloned on every sign-out/sign-in, so it's created once and reused
+    // by every donut.
+    var tooltip = document.getElementById("startFundsDonutTooltip");
+    if (!tooltip) {
+      tooltip = document.createElement("div");
+      tooltip.id = "startFundsDonutTooltip";
+      tooltip.className = "donut-tooltip";
+      tooltip.hidden = true;
+      document.body.appendChild(tooltip);
+    }
+    function placeTooltip(e) {
+      tooltip.style.left = (e.clientX + 10) + "px";
+      tooltip.style.top = (e.clientY - 26) + "px";
+    }
+    chartEl.querySelectorAll(".donut-seg").forEach(function (seg) {
+      seg.addEventListener("mouseenter", function (e) {
+        tooltip.textContent = seg.getAttribute("data-label");
+        placeTooltip(e);
+        tooltip.hidden = false;
+      });
+      seg.addEventListener("mousemove", placeTooltip);
+      seg.addEventListener("mouseleave", function () { tooltip.hidden = true; });
+    });
+  }
+
+  // Budgets tab: each fund's starting amount as a share of the total.
+  function renderBudgetDonut() {
+    var chartEl = document.getElementById("startFundsDonut");
+    var legendEl = document.getElementById("startFundsDonutLegend");
+    if (!chartEl || !legendEl) return;
+
+    var segs = fundsOf(appState.budgets)
+      .map(function (f, i) { return { label: f.label, tip: f.label, amt: f.amount, color: fundColor(i) }; })
+      .filter(function (s) { return s.amt > 0; })
+      .sort(function (a, b) { return b.amt - a.amt; });
+    var total = segs.reduce(function (s, x) { return s + x.amt; }, 0);
+    drawDonut(chartEl, segs, fmtMoney(total), "Starting balance");
+
+    legendEl.innerHTML = segs.length
+      ? segs.map(function (s) {
+          var pct = total > 0 ? Math.round((s.amt / total) * 100) : 0;
+          return '<div class="donut-legend-item"><span class="dot" style="background:' + s.color + '"></span>' +
+            esc(s.label) + '<span class="donut-legend-pct">' + pct + "%</span></div>";
+        }).join("")
+      : '<div class="legend-empty">No starting funds added yet.</div>';
+  }
+
+  // Overview, Treasury balance tile: money left in each fund (all time,
+  // ignores the Period filter). A fund at $0 or below gets no slice but stays
+  // in the legend, in red when negative. Transactions without a fund show as
+  // an "Unassigned" line until someone edits them and picks one.
+  function renderBalanceDonut() {
+    var chartEl = document.getElementById("balanceDonut");
+    var legendEl = document.getElementById("balanceDonutLegend");
+    if (!chartEl || !legendEl) return;
+
+    var funds = fundsOf(appState.budgets);
+    var bal = fundBalances(funds, appState.transactions);
+    var rows = funds.map(function (f, i) { return { label: f.label, amt: bal.byId[f.id], color: fundColor(i) }; });
+    if (bal.unassignedCount) rows.push({ label: UNASSIGNED_FUND.label, amt: bal.unassigned, color: UNASSIGNED_FUND.color, unassigned: true });
+    rows.sort(function (a, b) { return b.amt - a.amt; });
+
+    var segs = rows.filter(function (r) { return r.amt > 0; })
+      .map(function (r) { return { amt: r.amt, color: r.color, tip: r.label + " · " + fmtMoney(r.amt) + " left" }; });
+    var positive = segs.reduce(function (s, x) { return s + x.amt; }, 0);
+    drawDonut(chartEl, segs, String(funds.length), funds.length === 1 ? "fund" : "funds");
+
+    if (!rows.length) {
+      legendEl.innerHTML = '<div class="legend-empty">Add funds in the Budgets tab to see what is left in each.</div>';
+      return;
+    }
+    legendEl.innerHTML = rows.map(function (r) {
+      var pct = r.amt > 0 && positive > 0 ? Math.round((r.amt / positive) * 100) + "%" : "—";
+      return '<div class="donut-legend-item' + (r.amt < 0 ? " over" : "") + '"><span class="dot" style="background:' + r.color + '"></span>' +
+        esc(r.label) + '<span class="fund-amt">' + fmtMoney(r.amt) + '</span><span class="fund-pct">' + pct + "</span></div>";
+    }).join("") +
+    (bal.unassignedCount ? '<div class="fund-note">Unassigned = ' + bal.unassignedCount + " transaction" + (bal.unassignedCount === 1 ? "" : "s") +
+      " with no fund picked. Edit them in Transactions to file each under a fund.</div>" : "");
+  }
+
+  // ---------------------------------------------------------------
+  // Transactions tab
+  // ---------------------------------------------------------------
+  function renderTransactions() {
+    var type = document.getElementById("fType").value;
+    var cat = document.getElementById("fCategory").value;
+    var ev = document.getElementById("fEvent").value;
+    var search = document.getElementById("fSearch").value.trim().toLowerCase();
+
+    var evSelect = document.getElementById("fEvent");
+    var currentEvents = Array.from(new Set(appState.transactions.map(function (t) { return t.event; }).filter(Boolean))).sort();
+    var existingVals = Array.from(evSelect.options).map(function (o) { return o.value; });
+    currentEvents.forEach(function (name) {
+      if (existingVals.indexOf(name) === -1) {
+        var o = document.createElement("option"); o.value = name; o.textContent = name; evSelect.appendChild(o);
+      }
+    });
+
+    var rows = appState.transactions.filter(function (t) {
+      if (type !== "all" && t.type !== type) return false;
+      if (cat !== "all" && normCat(t.category) !== cat) return false;
+      if (ev !== "all" && t.event !== ev) return false;
+      if (search && !(t.description || "").toLowerCase().includes(search)) return false;
+      return true;
+    }).sort(function (a, b) { return (b.date || "").localeCompare(a.date || "") || (b.createdAt || "").localeCompare(a.createdAt || ""); });
+
+    document.getElementById("txCount").textContent = rows.length + " " + (rows.length === 1 ? "entry" : "entries");
+    var tbody = document.getElementById("txBody");
+    tbody.innerHTML = "";
+    document.getElementById("txEmpty").hidden = rows.length > 0;
+
+    var editable = canEdit();
+    rows.forEach(function (t) {
+      var nk = normCat(t.category);
+      var c = nk === UNCATEGORIZED.id ? UNCATEGORIZED : catById[nk];
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        '<td class="mono">' + esc(t.date || "") + "</td>" +
+        '<td class="desc">' + esc(t.description || "") + "</td>" +
+        '<td><span class="cat-chip"><span class="dot" style="background:' + c.color + '"></span>' + esc(c.label) + "</span></td>" +
+        "<td>" + esc(t.event || "—") + "</td>" +
+        "<td>" + (fundLabel(t.fund) ? esc(fundLabel(t.fund)) : '<span style="color:var(--text-muted);">Unassigned</span>') + "</td>" +
+        '<td><span class="type-tag ' + t.type + '">' + (t.type === "income" ? "Income" : "Expense") + "</span></td>" +
+        '<td class="amt num">' + fmtMoney(t.amount) + "</td>" +
+        "<td>" + esc(t.addedBy || "—") + "</td>" +
+        '<td><div class="row-actions">' +
+          (editable ?
+            '<button class="btn ghost small edit-tx" data-id="' + t.id + '" title="Edit">✎</button>' +
+            '<button class="btn ghost small delete-tx" data-id="' + t.id + '" title="Delete">🗑</button>' : "") +
+        "</div></td>";
+      tbody.appendChild(tr);
+    });
+
+    tbody.querySelectorAll(".edit-tx").forEach(function (btn) { btn.addEventListener("click", function () { openTxModal(btn.dataset.id); }); });
+    tbody.querySelectorAll(".delete-tx").forEach(function (btn) { btn.addEventListener("click", function () {
+      deleteTransactionChecked(btn.dataset.id);
+    }); });
+  }
+
+  // Deleting income can leave its fund short, so deletes go through the same
+  // overspend check as saves. Returns true if the delete was sent.
+  function deleteTransactionChecked(id) {
+    var funds = fundsOf(appState.budgets);
+    var after = appState.transactions.filter(function (t) { return t.id !== id; });
+    var err = overspendError(funds, appState.transactions, funds, after);
+    if (err) { alert(err.replace("this would", "deleting this would")); return false; }
+    if (!confirm("Delete this transaction?")) return false;
+    backend.deleteTransaction(id).catch(function (e) { showError(e.message); });
+    return true;
+  }
+
+  // ---------------------------------------------------------------
+  // Add / edit transaction modal
+  // ---------------------------------------------------------------
+  function closeModal() { document.getElementById("modalRoot").innerHTML = ""; }
+
+  function openTxModal(editId) {
+    if (!canEdit()) return;
+    var existing = editId ? appState.transactions.find(function (t) { return t.id === editId; }) : null;
+    var root = document.getElementById("modalRoot");
+    var existingCat = existing ? normCat(existing.category) : null;
+    var catOptions = (existingCat === UNCATEGORIZED.id ? '<option value="" selected disabled>Choose a category…</option>' : "") +
+      CATEGORIES.map(function (c) {
+        return '<option value="' + c.id + '"' + (existingCat === c.id ? " selected" : "") + ">" + esc(c.label) + "</option>";
+      }).join("");
+    var eventList = eventNames();
+    var existingEvKey = existing ? eventKey(existing.event) : "";
+    var eventOptions = '<option value="">None</option>' +
+      eventList.map(function (e) {
+        return '<option value="' + esc(e) + '"' + (eventKey(e) === existingEvKey ? " selected" : "") + ">" + esc(e) + "</option>";
+      }).join("") +
+      '<option value="__other__">Other</option>';
+    // Each option shows what's left in that fund, not counting this
+    // transaction itself when editing.
+    var funds = fundsOf(appState.budgets);
+    var othersBal = fundBalances(funds, appState.transactions.filter(function (t) { return !existing || t.id !== existing.id; })).byId;
+    var existingFund = existing && funds.some(function (f) { return f.id === existing.fund; }) ? existing.fund : "";
+    var fundOptions = funds.length
+      ? (existingFund ? "" : '<option value="" selected disabled>Choose a fund…</option>') +
+        funds.map(function (f) {
+          return '<option value="' + esc(f.id) + '"' + (existingFund === f.id ? " selected" : "") + ">" +
+            esc(f.label) + " (" + fmtMoney(othersBal[f.id]) + " left)</option>";
+        }).join("")
+      : '<option value="" selected disabled>No funds yet. Add one in the Budgets tab</option>';
+
+    root.innerHTML =
+      '<div class="modal-backdrop" id="txBackdrop">' +
+        '<div class="modal">' +
+          "<h3>" + (existing ? "Edit transaction" : "Add transaction") + "</h3>" +
+          '<div class="modal-sub">Logged transactions update the treasury balance and charts for everyone.</div>' +
+          '<div class="field-row">' +
+            '<div class="field"><label for="txDate">Date</label><input type="date" id="txDate" value="' + (existing ? existing.date : todayISO()) + '" /></div>' +
+            '<div class="field"><label for="txType">Type</label><select id="txType"><option value="expense"' + (!existing || existing.type === "expense" ? " selected" : "") + '>Expense</option><option value="income"' + (existing && existing.type === "income" ? " selected" : "") + ">Income</option></select></div>" +
+          "</div>" +
+          '<div class="field"><label for="txDesc">Description</label><input id="txDesc" placeholder="e.g. Pizza for general body meeting" value="' + esc(existing ? existing.description : "") + '" /></div>' +
+          '<div class="field-row">' +
+            '<div class="field"><label for="txCategory">Category</label><select id="txCategory">' + catOptions + "</select></div>" +
+            '<div class="field"><label for="txAmount">Amount ($)</label><input type="number" step="0.01" min="0" id="txAmount" value="' + (existing ? existing.amount : "") + '" /></div>' +
+          "</div>" +
+          '<div class="field"><label for="txFund">Fund <span style="font-weight:400;color:var(--text-muted);">(which money this uses or adds to)</span></label>' +
+            '<select id="txFund">' + fundOptions + "</select>" +
+          "</div>" +
+          '<div class="field"><label for="txEventSelect">Event <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>' +
+            '<select id="txEventSelect">' + eventOptions + "</select>" +
+          "</div>" +
+          '<div class="field" id="txEventNewWrap" hidden><label for="txEventInput">Event name</label>' +
+            '<input id="txEventInput" placeholder="e.g. Fall Induction Banquet" />' +
+          "</div>" +
+          '<div class="modal-actions">' +
+            '<button class="btn" id="txCancel">Cancel</button>' +
+            (existing ? '<button class="btn danger" id="txDelete">Delete</button>' : "") +
+            '<button class="btn primary" id="txSave">' + (existing ? "Save changes" : "Add transaction") + "</button>" +
+          "</div>" +
+        "</div>" +
+      "</div>";
+
+    document.getElementById("txCancel").addEventListener("click", closeModal);
+    document.getElementById("txBackdrop").addEventListener("click", function (e) { if (e.target.id === "txBackdrop") closeModal(); });
+    if (existing) {
+      document.getElementById("txDelete").addEventListener("click", function () {
+        if (deleteTransactionChecked(existing.id)) closeModal();
+      });
+    }
+    var evSelect = document.getElementById("txEventSelect");
+    var evNewWrap = document.getElementById("txEventNewWrap");
+    evSelect.addEventListener("change", function () {
+      var isOther = evSelect.value === "__other__";
+      evNewWrap.hidden = !isOther;
+      if (isOther) document.getElementById("txEventInput").focus();
+    });
+    document.getElementById("txSave").addEventListener("click", function () {
+      var amount = parseFloat(document.getElementById("txAmount").value);
+      var desc = document.getElementById("txDesc").value.trim();
+      if (!desc || !amount || amount <= 0) { alert("Please enter a description and an amount greater than 0."); return; }
+      if (!document.getElementById("txCategory").value) { alert("Please choose a category."); return; }
+      var fund = document.getElementById("txFund").value;
+      if (!fund) { alert(funds.length ? "Please choose which fund this uses." : "Add a fund in the Budgets tab first."); return; }
+      var eventName = evSelect.value;
+      if (eventName === "__other__") {
+        eventName = document.getElementById("txEventInput").value.trim();
+        if (!eventName) { alert("Please enter the event name, or pick None."); return; }
+        // Reuse the existing spelling if this name matches a known event ignoring case.
+        var match = eventList.filter(function (e) { return eventKey(e) === eventKey(eventName); })[0];
+        if (match) eventName = match;
+      }
+      var payload = {
+        date: document.getElementById("txDate").value || todayISO(),
+        type: document.getElementById("txType").value,
+        description: desc,
+        category: document.getElementById("txCategory").value,
+        amount: amount,
+        event: eventName,
+        fund: fund,
+        addedBy: currentUser ? (currentUser.displayName || currentUser.email) : "Unknown",
+      };
+      var others = appState.transactions.filter(function (t) { return !existing || t.id !== existing.id; });
+      var overErr = overspendError(funds, appState.transactions, funds, others.concat([payload]));
+      if (overErr) { alert(overErr); return; }
+      var op;
+      if (existing) { op = backend.updateTransaction(existing.id, payload); }
+      else { payload.createdAt = new Date().toISOString(); op = backend.addTransaction(payload); }
+      op.then(closeModal).catch(function (e) { showError("Could not save: " + e.message); });
+    });
+  }
+
+  onAppReady(function () {
+    document.getElementById("addTxBtn").addEventListener("click", function () { if (canEdit()) openTxModal(null); });
+  });
+
+  // ---------------------------------------------------------------
+  // CSV import modal
+  // ---------------------------------------------------------------
+  onAppReady(function () {
+    document.getElementById("importBtn").addEventListener("click", function () { if (canEdit()) openImportModal(); });
+  });
+
+  function openImportModal() {
+    var root = document.getElementById("modalRoot");
+    root.innerHTML =
+      '<div class="modal-backdrop" id="impBackdrop">' +
+        '<div class="modal">' +
+          "<h3>Import transactions</h3>" +
+          '<div class="modal-sub">Paste rows from a spreadsheet: <span class="mono">date, description, category, event, type, amount, fund</span>. Category must match one of: ' +
+            CATEGORIES.map(function (c) { return esc(c.label); }).join(", ") + '. Type is "expense" or "income". Fund is optional and must match a fund name from the Budgets tab' +
+            (fundsOf(appState.budgets).length ? " (" + fundsOf(appState.budgets).map(function (f) { return esc(f.label); }).join(", ") + ")" : "") +
+            '; rows without one show as Unassigned. One row per line, comma-separated.</div>' +
+          '<textarea id="impText" placeholder="2026-09-10, Pizza for GBM, Food and Beverages, , expense, 62.50, Line Budget\n2026-09-12, Semester dues, Dues and Fees, , income, 900, Line Budget"></textarea>' +
+          '<div id="impError" style="color:var(--critical-text);font-size:12.5px;margin-top:6px;"></div>' +
+          '<div class="modal-actions">' +
+            '<button class="btn" id="impCancel">Cancel</button>' +
+            '<button class="btn primary" id="impSubmit">Import</button>' +
+          "</div>" +
+        "</div>" +
+      "</div>";
+    document.getElementById("impCancel").addEventListener("click", closeModal);
+    document.getElementById("impBackdrop").addEventListener("click", function (e) { if (e.target.id === "impBackdrop") closeModal(); });
+    document.getElementById("impSubmit").addEventListener("click", function () {
+      var text = document.getElementById("impText").value.trim();
+      var errEl = document.getElementById("impError");
+      if (!text) { errEl.textContent = "Paste at least one row."; return; }
+      var lines = text.split("\n").map(function (l) { return l.trim(); }).filter(Boolean);
+      var catLookup = {};
+      CATEGORIES.forEach(function (c) { catLookup[c.id] = c.id; catLookup[c.label.toLowerCase()] = c.id; });
+      var funds = fundsOf(appState.budgets);
+      var fundLookup = {};
+      funds.forEach(function (f) { fundLookup[f.label.trim().toLowerCase()] = f.id; });
+      var rows = []; var errors = [];
+      lines.forEach(function (line, i) {
+        var parts = line.split(",").map(function (p) { return p.trim(); });
+        if (parts.length < 6) { errors.push("Line " + (i + 1) + ": expected 6 fields, found " + parts.length); return; }
+        var date = parts[0], description = parts[1], category = parts[2].toLowerCase(), event = parts[3], type = parts[4].toLowerCase(), amount = parseFloat(parts[5]);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { errors.push("Line " + (i + 1) + ": date must be YYYY-MM-DD"); return; }
+        if (!catLookup[category]) { errors.push("Line " + (i + 1) + ": unknown category \"" + category + "\""); return; }
+        category = catLookup[category];
+        if (type !== "expense" && type !== "income") { errors.push("Line " + (i + 1) + ": type must be expense or income"); return; }
+        if (!amount || amount <= 0) { errors.push("Line " + (i + 1) + ": amount must be a positive number"); return; }
+        var fundName = (parts[6] || "").toLowerCase(), fund = "";
+        if (fundName) {
+          if (!fundLookup[fundName]) { errors.push("Line " + (i + 1) + ": unknown fund \"" + parts[6] + "\""); return; }
+          fund = fundLookup[fundName];
+        }
+        rows.push({ date: date, description: description, category: category, event: event, type: type, amount: amount, fund: fund, addedBy: currentUser ? (currentUser.displayName || currentUser.email) : "Import", createdAt: new Date().toISOString() });
+      });
+      if (errors.length) { errEl.innerHTML = errors.slice(0, 6).map(esc).join("<br>"); return; }
+      var overErr = overspendError(funds, appState.transactions, funds, appState.transactions.concat(rows));
+      if (overErr) { errEl.textContent = overErr.replace("this would", "importing these rows would"); return; }
+      Promise.all(rows.map(function (r) { return backend.addTransaction(r); })).then(function () { closeModal(); }).catch(function (e) { errEl.textContent = "Import failed: " + e.message; });
+    });
+  }
+
+  // ---------------------------------------------------------------
+  // Live subscriptions — started only once an officer is signed in
+  // (the rules forbid reading the data otherwise).
+  // ---------------------------------------------------------------
+  var subscribed = false, unsubTx = null, unsubBudget = null, unsubEv = null;
+  function startSubscriptions() {
+    if (subscribed) return;
+    subscribed = true;
+
+    unsubTx = txCol.onSnapshot(function (snap) {
+      appState.transactions = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      if (!snap.metadata.fromCache) txLoaded = true;
+      renderOverview();
+      renderTransactions();
+      reconcileEvents();
+    }, function (err) { showError("Could not load transactions: " + err.message); });
+
+    unsubEv = evCol.onSnapshot(function (snap) {
+      appState.events = snap.docs.map(function (d) { return { id: d.id, name: (d.data().name || "") }; });
+      if (!snap.metadata.fromCache) evLoaded = true;
+      reconcileEvents();
+    }, function (err) { showError("Could not load events: " + err.message); });
+
+    unsubBudget = budgetDoc.onSnapshot(function (snap) {
+      appState.budgets = snap.exists ? snap.data() : defaultBudgets();
+      if (snap.exists && !snap.metadata.fromCache) persistFundIds(appState.budgets);
+      renderStartFundsTable();
+      renderCategoryBudgetTable();
+      renderEventBudgetTable();
+      renderOverview();
+      renderBudgetDonut();
+      renderTransactions(); // the Fund column needs the fund names
+    }, function (err) { showError("Could not load budgets: " + err.message); });
+  }
+
+  // Detach listeners and clear data on sign-out, so a later sign-in reloads fresh.
+  function stopSubscriptions() {
+    if (unsubTx) { unsubTx(); unsubTx = null; }
+    if (unsubBudget) { unsubBudget(); unsubBudget = null; }
+    if (unsubEv) { unsubEv(); unsubEv = null; }
+    subscribed = false;
+    txLoaded = false; evLoaded = false;
+    appState.transactions = [];
+    appState.budgets = null;
+    appState.events = [];
+  }
+
+  // initial paint (empty state, right after the app shell is built)
+  onAppReady(function () {
+    renderOverview();
+    renderTransactions();
+    renderStartFundsTable();
+    renderCategoryBudgetTable();
+    renderEventBudgetTable();
+    renderBudgetDonut();
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# Firebase project settings for a real deployment — each copy of this app
+# uses its own Firebase project. Template: firebase-config.example.js
+firebase-config.js
+
+# macOS
+.DS_Store
+
+# Local Claude Code settings
+.claude/
+
+# Old pre-hardening copy of the site (its rules contain officer emails)
+Claude outputs/
+
+# Vercel CLI link folder
+.vercel/
+
+# Editors
+.vscode/
+.idea/
+
+# Data exports — never commit real treasury figures
+*.csv
+*.xlsx

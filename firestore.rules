@@ -1,0 +1,57 @@
+rules_version = '2';
+
+// Tau Beta Pi Chapter Treasury — Firestore security rules
+//
+// - Only signed-in officers may READ or WRITE.
+//   (The dashboard is fully private — login required to see anything.)
+//
+// Who is an officer lives in the database, not in this file: one document per
+// officer in the `officers` collection, whose document ID is that officer's
+// email address in lowercase (e.g. officers/officer_name@gmail.com). Add or
+// remove officers in the Firebase console (Firestore → Data → officers); no
+// rules re-publish or site redeploy needed. This file holds no personal data,
+// so it is safe to keep in a public repository.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOfficer() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/officers/$(request.auth.token.email.lower()));
+    }
+
+    // Private dashboard data: only officers may read OR write.
+    match /transactions/{doc} {
+      allow read, write: if isOfficer();
+    }
+
+    match /budgets/{doc} {
+      allow read, write: if isOfficer();
+    }
+
+    // Event names offered in the transaction form (one doc per event).
+    match /events/{doc} {
+      allow read, write: if isOfficer();
+    }
+
+    // Officer-only. The app reads a doc here to confirm edit rights, so this
+    // must be readable ONLY by officers.
+    match /meta/{doc} {
+      allow read, write: if isOfficer();
+    }
+
+    // The officer list. Officers may see it, but nobody can change it from the
+    // app — only from the Firebase console (which bypasses these rules), so a
+    // signed-in officer can't add new officers on their own.
+    match /officers/{email} {
+      allow read: if isOfficer();
+      allow write: if false;
+    }
+
+    // Deny everything else. (Rules are additive — no blanket allow anywhere.)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
